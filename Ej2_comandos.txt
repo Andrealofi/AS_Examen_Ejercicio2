@@ -1,0 +1,115 @@
+#### Ejercicio 2:
+
+# Creamos el indice "servidores":
+$ curl -X PUT "34.38.180.70:9200/servidores?pretty" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "fabricante": {
+        "type": "text"
+      },
+      "nombre": {
+        "type": "text"
+      },
+      "precio": {
+        "type": "float"
+      }
+    }
+  }
+}
+'
+
+# Creamos el indice "logs":
+$ curl -X PUT "34.38.180.70:9200/logs?pretty" -H 'Content-Type: application/json' -d'
+# Luego meter esto: 
+{
+  "mappings": {
+    "properties": {
+      "emisor": {
+        "type": "text"
+      },
+      "fecha": {
+        "type": "date"
+      },
+      "mensaje": {
+        "type": "text"
+      }
+    }
+  }
+}
+'
+
+## Añadimos los elementos necesarios al indice "servidores":
+$ curl -X POST "34.38.180.70:9200/servidores/_doc/1?pretty" -H 'Content-Type: application/json' -d'
+{
+  "fabricante": "Dell",
+  "nombre": "PowerEdge R6",
+  "precio": 4200.4
+}
+'
+
+$ curl -X POST "34.38.180.70:9200/servidores/_doc/2?pretty" -H 'Content-Type: application/json' -d'
+{
+  "fabricante": "Dell",
+  "nombre": "PowerEdge R7",
+  "precio": 7200.7
+}
+'
+
+$ curl -X POST "34.38.180.70:9200/servidores/_doc/3?pretty" -H 'Content-Type: application/json' -d'
+{
+  "fabricante": "Dell",
+  "nombre": "PowerEdge R6",
+  "precio": 8110.2
+}
+'
+
+## Cargar los 4 documentos en el indice "logs" usando carga en bruto
+curl -H 'Content-Type: application/x-ndjson' -XPOST '34.38.180.70:9200/logs/_bulk?pretty' --data-binary @ej2_logs.json
+
+## Modificar el campo "precio" del servidor Dell PowerEdge R7 con el valor 9010.5 (se utiliza el indice del elemento 2):
+$ curl -X POST "http://34.38.180.70:9200/servidores/_update/2" -H 'Content-Type: application/json' -d'
+{
+  "doc": {
+    "precio": 0
+  }
+}
+'
+
+## Realizar las siguientes búsquedas: 
+# 1. $ curl -XGET "34.38.180.70:9200/servidores/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+      "bool": {
+        "filter": { "range": {"precio": { "lt": 8000} } }
+}
+}
+}
+'
+
+# 2. curl -XGET "34.38.180.70:9200/servidores/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": { "fuzzy": { "fabricante": "edll" } }
+}
+'
+
+
+## Realizar las siguientes busquedas para logs: 
+# 1. $ curl -XGET "34.38.180.70:9200/logs/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": { "wildcard": { "emisor": "*d" } }
+}
+'
+
+# 2. $ curl -XGET "34.38.180.70:9200/logs/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "sort" : { "fecha": { "order": "asc" } }
+}
+'
+
+## Eliminar los datos del documento fabricante: 
+$ curl -X DELETE "http://34.38.180.70:9200/servidores/_doc/3"
+
+## Para ir comprobando los cambios que se han ido realizando se han utilizado estos dos comandos: 
+$ curl -XGET 34.38.180.70:9200/servidores/_search?pretty
+$ curl -XGET 34.38.70:9200/logs/_search?pretty
